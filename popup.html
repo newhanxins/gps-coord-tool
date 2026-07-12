@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            width: 300px; 
+            padding: 20px; 
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: #fff;
+        }
+        h2 { 
+            margin-top: 0; 
+            color: #1890ff; 
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        p { 
+            color: #666; 
+            font-size: 13px;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        .feature-list {
+            margin-bottom: 16px;
+        }
+        .feature-list li {
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 4px;
+            list-style: none;
+            padding-left: 16px;
+            position: relative;
+        }
+        .feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #52c41a;
+            font-weight: bold;
+        }
+        #openBtn { 
+            width: 100%; 
+            padding: 12px; 
+            background: linear-gradient(135deg, #1890ff 0%, #36cfcf 100%); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        #openBtn:hover { 
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <h2>GPS 坐标定位工具</h2>
+    <ul class="feature-list">
+        <li>支持 WGS-84 / GCJ-02 / BD-09</li>
+        <li>坐标自动转换与复制</li>
+        <li>批量点位定位</li>
+        <li>地图可视化显示</li>
+    </ul>
+    <button id="openBtn">打开工具</button>
+    <script>
+        document.getElementById('openBtn').addEventListener('click', function() {
+            alert('请先打开地图，再点击打开工具');
+            chrome.tabs.create({ url: chrome.runtime.getURL('main.html') });
+        });
+    </script>
+</body>
+</html>

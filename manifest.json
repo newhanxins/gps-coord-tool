@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "GPS坐标定位工具",
+    "version": "1.0.0",
+    "description": "支持WGS-84/GCJ-02/BD-09多种坐标系转换和地图定位",
+    "permissions": ["tabs"],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_icon": {
+            "16": "icon.png",
+            "48": "icon.png",
+            "128": "icon.png"
+        }
+    },
+    "icons": {
+        "16": "icon.png",
+        "48": "icon.png",
+        "128": "icon.png"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": ["main.html", "icon.png"],
+            "matches": ["<all_urls>"]
+        }
+    ]
+}
