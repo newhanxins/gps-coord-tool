@@ -4,10 +4,27 @@
     "version": "1.0.0",
     "description": "支持WGS-84/GCJ-02/BD-09多种坐标系转换和地图定位",
     "permissions": ["tabs"],
+    "host_permissions": [
+        "https://*.tile.openstreetmap.org/*",
+        "https://server.arcgisonline.com/*",
+        "https://mt0.google.com/*",
+        "https://mt1.google.com/*",
+        "https://mt2.google.com/*",
+        "https://mt3.google.com/*",
+        "https://webrd01.is.autonavi.com/*",
+        "https://webrd02.is.autonavi.com/*",
+        "https://webrd03.is.autonavi.com/*",
+        "https://webrd04.is.autonavi.com/*",
+        "https://webst01.is.autonavi.com/*",
+        "https://webst02.is.autonavi.com/*",
+        "https://webst03.is.autonavi.com/*",
+        "https://webst04.is.autonavi.com/*"
+    ],
     "background": {
         "service_worker": "background.js"
     },
     "action": {
+        "default_popup": "popup.html",
         "default_icon": {
             "16": "icon.png",
             "48": "icon.png",
@@ -21,7 +38,7 @@
     },
     "web_accessible_resources": [
         {
-            "resources": ["main.html", "icon.png"],
+            "resources": ["main.html", "popup.js", "icon.png"],
             "matches": ["<all_urls>"]
         }
     ]

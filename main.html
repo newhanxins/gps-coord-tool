@@ -92,7 +92,28 @@
         .popup-value { color: #1890ff; font-family: 'Consolas', monospace; }
 
         /* 图层切换 */
-        .leaflet-control-layers { border-radius: 8px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important; font-family: 'Microsoft YaHei', sans-serif; font-size: 12px; }
+        .leaflet-control-layers { 
+            border-radius: 8px !important; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important; 
+            font-family: 'Microsoft YaHei', sans-serif; 
+            font-size: 12px;
+            background: white !important;
+            border: 2px solid rgba(0,0,0,0.2) !important;
+        }
+        .leaflet-control-layers-selector {
+            margin-right: 6px;
+        }
+        .leaflet-control-layers label {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .leaflet-control-layers label:hover {
+            background: #f0f2f5;
+            border-radius: 4px;
+        }
 
         /* Toast */
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 9999; transition: all 0.3s; pointer-events: none; }

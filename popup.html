@@ -69,11 +69,7 @@
         <li>地图可视化显示</li>
     </ul>
     <button id="openBtn">打开工具</button>
-    <script>
-        document.getElementById('openBtn').addEventListener('click', function() {
-            alert('请先打开地图，再点击打开工具');
-            chrome.tabs.create({ url: chrome.runtime.getURL('main.html') });
-        });
-    </script>
+    <div id="debug" style="margin-top: 10px; font-size: 11px; color: #999;"></div>
+    <script src="popup.js"></script>
 </body>
 </html>

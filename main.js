@@ -15,10 +15,12 @@ const pi = 3.1415926535897932384626;
 const a = 6378245.0;
 const ee = 0.00669342162296594323;
 
+// 判断坐标是否在中国大陆范围内
 function outOfChina(lng, lat) {
     return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271;
 }
 
+// 纬度转换函数（用于 WGS-84 到 GCJ-02 的偏移计算）
 function transformLat(lng, lat) {
     let ret = -100.0 + 2.0 * lng + 3.0 * lat + 0.2 * lat * lat + 0.1 * lng * lat + 0.2 * Math.sqrt(Math.abs(lng));
     ret += (20.0 * Math.sin(6.0 * lng * Math.PI) + 20.0 * Math.sin(2.0 * lng * Math.PI)) * 2.0 / 3.0;
@@ -27,6 +29,7 @@ function transformLat(lng, lat) {
     return ret;
 }
 
+// 经度转换函数（用于 WGS-84 到 GCJ-02 的偏移计算）
 function transformLng(lng, lat) {
     let ret = 300.0 + lng + 2.0 * lat + 0.1 * lng * lng + 0.1 * lng * lat + 0.1 * Math.sqrt(Math.abs(lng));
     ret += (20.0 * Math.sin(6.0 * lng * Math.PI) + 20.0 * Math.sin(2.0 * lng * Math.PI)) * 2.0 / 3.0;
@@ -35,6 +38,7 @@ function transformLng(lng, lat) {
     return ret;
 }
 
+// WGS-84 坐标转换为 GCJ-02 坐标（国测局加密）
 function wgs84ToGcj02(lng, lat) {
     if (outOfChina(lng, lat)) return { lng, lat };
     let dlat = transformLat(lng - 105.0, lat - 35.0);
@@ -48,6 +52,7 @@ function wgs84ToGcj02(lng, lat) {
     return { lng: lng + dlng, lat: lat + dlat };
 }
 
+// GCJ-02 坐标转换为 WGS-84 坐标（迭代逼近法）
 function gcj02ToWgs84(lng, lat) {
     if (outOfChina(lng, lat)) return { lng, lat };
     let wgsLng = lng, wgsLat = lat;
@@ -62,12 +67,14 @@ function gcj02ToWgs84(lng, lat) {
     return { lng: wgsLng, lat: wgsLat };
 }
 
+// GCJ-02 坐标转换为 BD-09 坐标（百度加密）
 function gcj02ToBd09(lng, lat) {
     const z = Math.sqrt(lng * lng + lat * lat) + 0.00002 * Math.sin(lat * pi * 3000 / 180);
     const theta = Math.atan2(lat, lng) + 0.000003 * Math.cos(lng * pi * 3000 / 180);
     return { lng: z * Math.cos(theta) + 0.0065, lat: z * Math.sin(theta) + 0.006 };
 }
 
+// BD-09 坐标转换为 GCJ-02 坐标（百度逆向解密）
 function bd09ToGcj02(lng, lat) {
     const x = lng - 0.0065;
     const y = lat - 0.006;
@@ -76,16 +83,19 @@ function bd09ToGcj02(lng, lat) {
     return { lng: z * Math.cos(theta), lat: z * Math.sin(theta) };
 }
 
+// WGS-84 坐标直接转换为 BD-09 坐标（通过 GCJ-02 中转）
 function wgs84ToBd09(lng, lat) {
     const gcj = wgs84ToGcj02(lng, lat);
     return gcj02ToBd09(gcj.lng, gcj.lat);
 }
 
+// BD-09 坐标直接转换为 WGS-84 坐标（通过 GCJ-02 中转）
 function bd09ToWgs84(lng, lat) {
     const gcj = bd09ToGcj02(lng, lat);
     return gcj02ToWgs84(gcj.lng, gcj.lat);
 }
 
+// 将任意坐标系转换为三种坐标系（WGS-84、GCJ-02、BD-09）
 function convertAll(lng, lat, fromType) {
     let wgs84, gcj02, bd09;
     if (fromType === 'wgs84') {
@@ -136,12 +146,14 @@ function convertToMapCoords(lng, lat, inputType) {
 }
 
 // ==================== 初始化 ====================
+// 页面初始化入口：初始化地图、单点输入和事件绑定
 function init() {
     initMap();
     initSinglePoints();
     bindEvents();
 }
 
+// 初始化地图：创建 Leaflet 地图实例，添加各地图瓦片图层和控件
 function initMap() {
     map = L.map('map').setView([30.6573, 104.0648], 12);
 
@@ -153,9 +165,30 @@ function initMap() {
         subdomains: ['1', '2', '3', '4'], attribution: '高德地图', maxZoom: 18
     });
 
-    // OpenStreetMap (WGS-84)
-    const osmStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        subdomains: ['a', 'b', 'c'], attribution: 'OpenStreetMap', maxZoom: 18
+    // OpenStreetMap (WGS-84) - 支持故障自动切换
+    const osmStreetSources = [
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',  // OSM 官方
+        'https://tile.openstreetmap.de/{z}/{x}/{y}.png',   // 德国镜像
+        'https://a.tile.openstreetmap.fr/{z}/{x}/{y}.png'  // 法国镜像
+    ];
+    
+    let currentOsmSourceIndex = 0;
+    const osmStreet = L.tileLayer(osmStreetSources[currentOsmSourceIndex], {
+        attribution: 'OpenStreetMap', 
+        maxZoom: 18
+    });
+    
+    // OSM 瓦片加载失败时自动切换到下一个源
+    osmStreet.on('tileerror', function(e) {
+        const failedUrl = e.tile.src;
+        const currentIndex = osmStreetSources.findIndex(url => failedUrl.includes(url.split('/')[2]));
+        
+        if (currentIndex === currentOsmSourceIndex && currentOsmSourceIndex < osmStreetSources.length - 1) {
+            currentOsmSourceIndex++;
+            console.log('OSM 加载失败，切换到备用源:', osmStreetSources[currentOsmSourceIndex]);
+            osmStreet.setUrl(osmStreetSources[currentOsmSourceIndex]);
+            showToast('OpenStreetMap 切换至备用源 ' + (currentOsmSourceIndex + 1));
+        }
     });
     const osmSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Esri', maxZoom: 18
@@ -203,15 +236,19 @@ function initMap() {
     // 默认使用高德街道图
     gaodeStreet.addTo(map);
 
-    // 添加图层切换控件
+    // 添加图层切换控件（默认展开）
     layerControl = L.control.layers({
         '街道图': gaodeStreet,
         '卫星图': gaodeSatellite
-    }, null, { position: 'topright' }).addTo(map);
+    }, null, { 
+        position: 'topright',
+        collapsed: false  // 默认展开，不折叠
+    }).addTo(map);
 
     if (enableLongPressGps) initLongPressEvent();
 }
 
+// 切换地图类型：移除旧图层，加载新地图瓦片并更新图层控件
 function switchMapType() {
     const newMapType = document.getElementById('mapType').value;
     if (newMapType === currentMapType) return;
@@ -238,12 +275,15 @@ function switchMapType() {
     // 添加当前图层类型
     currentBase[currentLayerType].addTo(map);
 
-    // 添加图层切换控件
+    // 添加图层切换控件（默认展开）
     const baseMaps = {
         '街道图': currentBase.street,
         '卫星图': currentBase.satellite
     };
-    layerControl = L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+    layerControl = L.control.layers(baseMaps, null, { 
+        position: 'topright',
+        collapsed: false  // 默认展开，不折叠
+    }).addTo(map);
 
     // 监听图层切换
     map.on('baselayerchange', handleBaseLayerChange);
@@ -252,6 +292,7 @@ function switchMapType() {
     updatePositions();
 }
 
+// 处理图层切换事件：当用户切换街道图/卫星图时更新当前图层类型
 function handleBaseLayerChange(e) {
     const currentBase = baseLayers[currentMapType];
     if (e.layer === currentBase.street) {
@@ -262,6 +303,7 @@ function handleBaseLayerChange(e) {
 }
 
 // ==================== Tab 切换 ====================
+// 切换单点输入/批量输入 Tab 页
 function switchTab(tabName) {
     currentTab = tabName;
     document.querySelectorAll('.tab-nav-item').forEach(item => {
@@ -278,10 +320,12 @@ function switchTab(tabName) {
 }
 
 // ==================== 单点输入 ====================
+// 初始化单点输入：默认添加一个输入点
 function initSinglePoints() {
     addSinglePoint();
 }
 
+// 添加新的单点输入项（自动分配 A、B、C... 标识）
 function addSinglePoint() {
     const idx = singlePoints.length;
     const pointId = String.fromCharCode(65 + idx);
@@ -289,6 +333,7 @@ function addSinglePoint() {
     renderSinglePoints();
 }
 
+// 删除指定的单点输入项（至少保留一个点）
 function removeSinglePoint(index) {
     if (singlePoints.length <= 1) {
         showToast('至少保留一个点');
@@ -300,6 +345,7 @@ function removeSinglePoint(index) {
     parseSinglePoints();
 }
 
+// 渲染单点输入区域的 HTML（动态生成输入框和删除按钮）
 function renderSinglePoints() {
     const container = document.getElementById('pointInputs');
     let html = '';
@@ -325,6 +371,7 @@ function renderSinglePoints() {
     container.innerHTML = html;
 }
 
+// 解析单点输入区域的坐标值，验证格式并存储到 parsedPoints
 function parseSinglePoints() {
     if (currentTab !== 'single') return;
     parsedPoints = [];
@@ -355,6 +402,7 @@ function collectSinglePoints() {
 }
 
 // ==================== 批量输入 ====================
+// 解析批量输入文本框中的坐标（每行格式：经度,纬度）
 function parseBatchInput() {
     if (currentTab !== 'batch') return;
     const text = document.getElementById('batchInput').value.trim();
@@ -388,6 +436,7 @@ function onCoordTypeChange() {
 }
 
 // ==================== 长按功能 ====================
+// 初始化地图长按事件：支持鼠标和触摸屏长按 800ms 触发定位
 function initLongPressEvent() {
     let pressTimer;
     map.on('mousedown', (e) => {
@@ -407,6 +456,7 @@ function initLongPressEvent() {
     map.on('touchend', () => clearTimeout(pressTimer));
 }
 
+// 显示长按位置的坐标信息：在地图上添加标记并显示弹窗
 function showLongPressPosition(latlng) {
     const lng = latlng.lng, lat = latlng.lat;
     let coords, wgs84;
@@ -433,6 +483,7 @@ function showLongPressPosition(latlng) {
     longPressMarkers.push(marker);
 }
 
+// 创建长按位置的弹窗 HTML：显示地图坐标和真实 GPS 坐标，以及偏移距离
 function createLongPressPopup(coords) {
     const offset = Math.sqrt(Math.pow(coords.lng - coords.wgs84.lng, 2) + Math.pow(coords.lat - coords.wgs84.lat, 2)) * 100000;
     return '<div class="popup-title">当前位置坐标</div>' +
@@ -485,6 +536,7 @@ function updateConvertResult() {
 }
 
 // ==================== 更新位置 ====================
+// 更新地图标记位置：解析输入坐标，转换并在地图上添加标记点
 function updatePositions() {
     if (currentTab === 'single') {
         parseSinglePoints();
@@ -544,6 +596,7 @@ function getCoordTypeName(type) {
 }
 
 // ==================== 复制功能 ====================
+// 复制坐标文本到剪贴板（优先使用 Clipboard API，降级使用 execCommand）
 async function copyCoords(text) {
     try {
         await navigator.clipboard.writeText(text);
@@ -560,6 +613,7 @@ async function copyCoords(text) {
     }
 }
 
+// 显示底部 Toast 提示信息（2秒后自动消失）
 function showToast(message) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -568,6 +622,7 @@ function showToast(message) {
 }
 
 // ==================== 事件绑定 ====================
+// 绑定所有 UI 事件监听器：Tab 切换、输入框变化、按钮点击等
 function bindEvents() {
     // Tab 切换
     document.querySelectorAll('.tab-nav-item').forEach(item => {
